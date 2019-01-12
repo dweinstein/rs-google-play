@@ -1,0 +1,7 @@
+[package]
+name = "gpapi-cli"
+version = "0.1.0"
+authors = ["David Weinstein <dweinst@insitusec.com>"]
+
+[dependencies.gpapi]
+path = "../gpapi"

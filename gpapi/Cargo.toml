@@ -1,0 +1,23 @@
+[package]
+name = "gpapi"
+version = "0.1.0"
+authors = ["David Weinstein <dweinst@insitusec.com>"]
+build = "build.rs"
+
+[dependencies]
+# protobuf = { version = "~2.0", features = ["with-bytes"] }
+protobuf = { git = "https://github.com/stepancheg/rust-protobuf.git", features = ["with-bytes", "with-serde"] }
+curl = "0.4.19"
+serde = "1"
+serde_json = "1"
+serde_derive = "1"
+# ring = "0.13.5"
+# untrusted = "0.6.2"
+openssl = "0.10.16"
+base64 = "0.10.0"
+byteorder = "1.2.7"
+hex = "0.3.2"
+lazy_static = "1.2.0"
+
+[build-dependencies]
+protoc-rust = { git = "https://github.com/stepancheg/rust-protobuf.git" }
