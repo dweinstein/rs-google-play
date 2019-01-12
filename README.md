@@ -7,7 +7,8 @@ TODO
 ----
 - [x] login and get auth token
 - [ ] support all api requests
-  - [ ] details and bulkDetails requests
+  - [ ] details
+  - [x] bulkDetails
   - [ ] apk download
 - [ ] set code license
 
