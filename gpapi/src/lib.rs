@@ -24,6 +24,7 @@ use protos::googleplay::{
     BulkDetailsRequest, BulkDetailsResponse, DetailsResponse, ResponseWrapper,
 };
 
+/// Play Store API endpoints supported
 #[derive(Debug)]
 pub enum Endpoint {
     Details,
@@ -39,6 +40,7 @@ impl Endpoint {
     }
 }
 
+/// Play Store bulk package detail request.
 pub fn bulk_details(
     pkg_names: Vec<String>,
     token: &str,
@@ -59,6 +61,7 @@ pub fn bulk_details(
     }
 }
 
+/// Play Store package detail request (provides more detail than bulk requests).
 pub fn details(
     pkg_name: &str,
     token: &str,
@@ -74,6 +77,9 @@ pub fn details(
     }
 }
 
+/// Lower level Play Store request, used by APIs but exposed for specialized 
+/// requests. Returns a `ResponseWrapper` which depending on the request 
+/// populates different fields/values.
 pub fn execute_request(
     endpoint: &str,
     query: Option<HashMap<&str, &str>>,
@@ -172,6 +178,13 @@ impl Gpapi {
     }
 }
 
+/// Handles logging into Google Play Store, retrieving a set of tokens from
+/// the server that can be used for future requests.
+/// The `android_id` is obtained by retrieving your 
+/// [GSF id](https://blog.onyxbits.de/what-exactly-is-a-gsf-id-where-do-i-get-it-from-and-why-should-i-care-2-12/).
+/// You can also get your **GDF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
+/// Note that you don't want the Android ID here, but the GSF id. 
+/// We call it the `android_id` internally for legacy reasons.
 pub fn login(
     username: &str,
     password: &str,
@@ -212,6 +225,8 @@ pub fn parse_form_reply(data: &str) -> HashMap<String, String> {
     form_resp
 }
 
+/// Handles encrypting your login/password using Google's public key
+/// Produces something of the format:
 /// |00|4 bytes of sha1(publicKey)|rsaEncrypt(publicKeyPem, "login\x00password")|
 pub fn encrypt_login(login: &str, password: &str) -> Option<Vec<u8>> {
     let raw = base64::decode(consts::GOOGLE_PUB_KEY_B64).unwrap();
