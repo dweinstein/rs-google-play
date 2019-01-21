@@ -1,13 +1,5 @@
-rust-gpapi
-==========
+rs-gpapi
+========
 
-Rust conversion (in-progress) from https://github.com/dweinstein/node-google-play.
-
-TODO
-----
-- [x] login and get auth token
-- [ ] support all api requests
-  - [ ] details and bulkDetails requests
-  - [ ] apk download
-- [ ] set code license
+Rust `gpapi` library upon which CLI tools can easily be built on top.
 
