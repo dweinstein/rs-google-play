@@ -20,7 +20,9 @@ use std::error::Error;
 pub use curl::easy::{Easy, List};
 pub use protobuf::Message;
 
-use protos::googleplay::{BulkDetailsRequest, BulkDetailsResponse, ResponseWrapper};
+use protos::googleplay::{
+    BulkDetailsRequest, BulkDetailsResponse, DetailsResponse, ResponseWrapper,
+};
 
 #[derive(Debug)]
 pub enum Endpoint {
@@ -49,7 +51,7 @@ pub fn bulk_details(
 
     let bytes = req.write_to_bytes()?;
 
-    let resp = execute_request("bulkDetails", &bytes, android_id, token)?;
+    let resp = execute_request("bulkDetails", None, Some(&bytes), android_id, token)?;
     if let Some(payload) = resp.payload.into_option() {
         Ok(payload.bulkDetailsResponse.into_option())
     } else {
@@ -57,16 +59,37 @@ pub fn bulk_details(
     }
 }
 
+pub fn details(
+    pkg_name: &str,
+    token: &str,
+    android_id: &str,
+) -> Result<Option<DetailsResponse>, Box<Error>> {
+    let req: HashMap<&str, &str> = [("doc", pkg_name)].iter().cloned().collect();
+
+    let resp = execute_request("details", Some(req), None, android_id, token)?;
+    if let Some(payload) = resp.payload.into_option() {
+        Ok(payload.detailsResponse.into_option())
+    } else {
+        Ok(None)
+    }
+}
+
 pub fn execute_request(
     endpoint: &str,
-    msg: &[u8],
+    query: Option<HashMap<&str, &str>>,
+    msg: Option<&[u8]>,
     android_id: &str,
     token: &str,
 ) -> Result<ResponseWrapper, Box<Error>> {
+    let mut easy = Easy::new();
+
     let url = format!("{}/{}", "https://android.clients.google.com/fdfe", endpoint);
 
-    let mut easy = Easy::new();
-    easy.url(&url)?;
+    if let Some(query) = query {
+        easy.url_query(&url, query)?;
+    } else {
+        easy.url(&url)?;
+    }
 
     let mut list = List::new();
     list.append("Accept-Language: en_US")?;
@@ -86,7 +109,9 @@ pub fn execute_request(
     };
     easy.useragent(&config.user_agent())?;
 
-    easy.post_fields_copy(&msg)?;
+    if let Some(msg) = msg {
+        easy.post_fields_copy(&msg)?;
+    }
 
     let mut buf = Vec::new();
     {
@@ -174,8 +199,7 @@ pub fn login(
     }
 
     let reply = parse_form_reply(&std::str::from_utf8(&buf).unwrap());
-    println!("reply {:?}", reply);
-    Ok(reply)
+    Ok(dbg!(reply))
 }
 
 pub fn parse_form_reply(data: &str) -> HashMap<String, String> {
@@ -365,6 +389,22 @@ pub fn build_login_request(username: &str, password: &str, android_id: &str) -> 
     }
 }
 
+/// A trait that provides a convenience method for using URL-encoded query paramaters in a URL with `curl::Easy`
+pub trait QueryParams {
+    fn url_query(&mut self, url: &str, query: HashMap<&str, &str>) -> Result<(), curl::Error>;
+}
+
+impl QueryParams for Easy {
+    /// Convenience method to set the `url` with query parameters.
+    fn url_query(&mut self, url: &str, query: HashMap<&str, &str>) -> Result<(), curl::Error> {
+        let mut res = vec![];
+        for (key, val) in query.iter() {
+            res.push(self.url_encode(format!("{}={}", key, val).as_bytes()));
+        }
+        self.url(&format!("{}?{}", url, res.join("&")))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -391,9 +431,9 @@ mod tests {
         fn test_protobuf() {
             use protos::googleplay::BulkDetailsRequest;
             let mut x = BulkDetailsRequest::new();
-            x.set_docid(vec!["test".to_string()].into());
-            x.set_includeDetails(true);
-            x.set_includeChildDocs(true);
+            x.docid = vec!["test".to_string()].into();
+            x.includeDetails = true;
+            x.includeChildDocs = true;
         }
     }
 }
