@@ -77,8 +77,8 @@ pub fn details(
     }
 }
 
-/// Lower level Play Store request, used by APIs but exposed for specialized 
-/// requests. Returns a `ResponseWrapper` which depending on the request 
+/// Lower level Play Store request, used by APIs but exposed for specialized
+/// requests. Returns a `ResponseWrapper` which depending on the request
 /// populates different fields/values.
 pub fn execute_request(
     endpoint: &str,
@@ -180,10 +180,10 @@ impl Gpapi {
 
 /// Handles logging into Google Play Store, retrieving a set of tokens from
 /// the server that can be used for future requests.
-/// The `android_id` is obtained by retrieving your 
+/// The `android_id` is obtained by retrieving your
 /// [GSF id](https://blog.onyxbits.de/what-exactly-is-a-gsf-id-where-do-i-get-it-from-and-why-should-i-care-2-12/).
-/// You can also get your **GDF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
-/// Note that you don't want the Android ID here, but the GSF id. 
+/// You can also get your **GSF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
+/// Note that you don't want the Android ID here, but the GSF id.
 /// We call it the `android_id` internally for legacy reasons.
 pub fn login(
     username: &str,

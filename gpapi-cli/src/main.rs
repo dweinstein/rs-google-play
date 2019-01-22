@@ -13,10 +13,11 @@ fn main() -> Result<(), Box<Error>> {
             let resp = gpapi::login(username, password, android_id).unwrap();
             let token = resp.get("auth").unwrap();
 
-            let pkg_names: Vec<String> = vec![
-                String::from("com.viber.voip"),
-                String::from("com.foo.bar.baz.qux"),
-            ];
+            let pkg_names = ["com.viber.voip", "com.foo.bar.baz.qux"]
+                .iter()
+                .cloned()
+                .map(String::from)
+                .collect();
 
             if let Ok(Some(resp)) = gpapi::bulk_details(pkg_names, token, android_id) {
                 let as_str = gpapi::serde_json::to_string_pretty(&resp)?;
