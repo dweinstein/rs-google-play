@@ -1,4 +1,4 @@
-name: gpapi
+name: gpapi-cli
 version: "1.0"
 author: David Weinstein <dweinst AT insitusec DOT com>
 about: Interact with play store APIs
