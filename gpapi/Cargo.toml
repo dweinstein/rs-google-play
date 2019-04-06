@@ -7,7 +7,8 @@ build = "build.rs"
 [dependencies]
 # protobuf = { version = "~2.0", features = ["with-bytes"] }
 protobuf = { git = "https://github.com/stepancheg/rust-protobuf.git", features = ["with-bytes", "with-serde"] }
-curl = "0.4.19"
+# curl = "0.4.19"
+reqwest = "0.9.11"
 serde = "1"
 serde_json = "1"
 serde_derive = "1"

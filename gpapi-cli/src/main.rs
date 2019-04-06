@@ -1,36 +1,55 @@
+#![allow(non_snake_case)]
+
 extern crate gpapi;
+#[macro_use]
+extern crate clap;
+
+extern crate serde_json;
+
+use clap::App;
+use gpapi::Gpapi;
 
 use std::env;
 use std::error::Error;
 
 fn main() -> Result<(), Box<Error>> {
-    match get_login_from_env() {
+    let cli_yaml_def = load_yaml!("cli.yml");
+    let matches = App::from_yaml(cli_yaml_def).get_matches();
+    // dbg!(&matches);
+
+    let api = match get_login_from_env() {
         LoginInfo {
-            ref username,
-            ref password,
-            ref android_id,
+            username,
+            password,
+            gsf_id,
         } => {
-            let resp = gpapi::login(username, password, android_id).unwrap();
-            let token = resp.get("auth").unwrap();
-
-            let pkg_names = ["com.viber.voip", "com.foo.bar.baz.qux"]
-                .iter()
-                .cloned()
-                .map(String::from)
-                .collect();
-
-            if let Ok(Some(resp)) = gpapi::bulk_details(pkg_names, token, android_id) {
-                let as_str = gpapi::serde_json::to_string_pretty(&resp)?;
-                println!("{}", as_str);
-            }
-
-            if let Ok(Some(resp)) = gpapi::details("com.viber.voip", token, android_id) {
-                let as_str = gpapi::serde_json::to_string_pretty(&resp)?;
-                println!("{}", as_str);
-            }
+            let mut api = Gpapi::new(username, password, gsf_id);
+            api.authenticate()?;
+            // dbg!(&api.token);
+            api
         }
     };
 
+    if let Some(matches) = matches.subcommand_matches("bulk-details") {
+        let pkgs = matches.values_of("PKGS").unwrap().collect::<Vec<&str>>();
+        let bulk_details = api.bulk_details(&pkgs).ok();
+        let as_str = serde_json::to_string_pretty(&bulk_details)?;
+        println!("{}", as_str);
+    } else if let Some(matches) = matches.subcommand_matches("details") {
+        let pkg = matches.value_of("PKG").unwrap();
+        let details = api.details(&pkg)?.unwrap();
+        let as_str = serde_json::to_string_pretty(&details)?;
+        // dbg!(details);
+        println!("{}", as_str);
+    } else if let Some(matches) = matches.subcommand_matches("get-download-url") {
+        let pkg = matches.value_of("PKG").unwrap();
+        let vc: u64 = matches.value_of("VC").unwrap().parse().unwrap();
+        let download_url = api.get_download_url(&pkg, vc)?.unwrap();
+        println!("{}", download_url);
+       // dbg!(download_url);
+    } else {
+        return Err("Subcommand required".into())
+    }
     Ok(())
 }
 
@@ -38,7 +57,7 @@ fn main() -> Result<(), Box<Error>> {
 struct LoginInfo {
     username: String,
     password: String,
-    android_id: String,
+    gsf_id: String,
 }
 
 fn get_login_from_env() -> LoginInfo {
@@ -47,10 +66,10 @@ fn get_login_from_env() -> LoginInfo {
         env::var("GOOGLE_PASSWORD"),
         env::var("ANDROID_ID"),
     ) {
-        (Ok(username), Ok(password), Ok(android_id)) => LoginInfo {
+        (Ok(username), Ok(password), Ok(gsf_id)) => LoginInfo {
             username,
             password,
-            android_id,
+            gsf_id,
         },
         _ => unimplemented!(),
     }

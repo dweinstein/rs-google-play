@@ -1,0 +1,57 @@
+name: gpapi
+version: "1.0"
+author: David Weinstein <dweinst AT insitusec DOT com>
+about: Interact with play store APIs
+settings:
+    - SubcommandRequiredElseHelp
+args:
+    - config:
+        short: c
+        long: config
+        value_name: FILE
+        help: Sets a custom config file
+        takes_value: true
+    - verbose:
+        short: v
+        multiple: true
+        help: Sets the level of verbosity
+subcommands:
+    - details:
+        about: Get details for a package.
+        version: "1.0"
+        args:
+            - debug:
+                short: d
+                help: print debug information
+            - PKG:
+                help: Sets the package name to use
+                required: true
+                index: 1
+    - bulk-details:
+        about: Get details for a list of packages via `bulkDetails` API.
+        version: "1.0"
+        args:
+            - debug:
+                short: d
+                help: print debug information
+            - PKGS:
+                help: Supply (multiple) package names (up to 100-150).
+                required: true
+                multiple: true
+    - get-download-url:
+        about: Get download url (purchase if necessary) for a package
+        version: "1.0"
+        args:
+            - debug:
+                short: d
+                help: print debug information
+            - PKG:
+                help: Sets the package name to use
+                required: true
+                index: 1
+                multiple: false
+            - VC:
+                help: Application version code
+                required: true
+                index: 2
+                multiple: false

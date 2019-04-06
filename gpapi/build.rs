@@ -13,6 +13,7 @@ fn main() {
                 expose_fields: Some(true),
                 generate_accessors: Some(false),
                 serde_derive: Some(true),
+                // singular_field_option: Some(true),
                 ..Default::default()
             },
         })
