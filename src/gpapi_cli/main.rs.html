@@ -70,10 +70,6 @@
 <span id="70">70</span>
 <span id="71">71</span>
 <span id="72">72</span>
-<span id="73">73</span>
-<span id="74">74</span>
-<span id="75">75</span>
-<span id="76">76</span>
 </pre><div class="example-wrap"><pre class="rust ">
 <span class="attribute">#![<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
 
@@ -92,7 +88,6 @@
 <span class="kw">fn</span> <span class="ident">main</span>() <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Box</span><span class="op">&lt;</span><span class="ident">Error</span><span class="op">&gt;&gt;</span> {
     <span class="kw">let</span> <span class="ident">cli_yaml_def</span> <span class="op">=</span> <span class="macro">load_yaml</span><span class="macro">!</span>(<span class="string">&quot;cli.yml&quot;</span>);
     <span class="kw">let</span> <span class="ident">matches</span> <span class="op">=</span> <span class="ident">App</span>::<span class="ident">from_yaml</span>(<span class="ident">cli_yaml_def</span>).<span class="ident">get_matches</span>();
-    <span class="comment">// dbg!(&amp;matches);</span>
 
     <span class="kw">let</span> <span class="ident">api</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">get_login_from_env</span>() {
         <span class="ident">LoginInfo</span> {
@@ -102,7 +97,6 @@
         } <span class="op">=&gt;</span> {
             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">api</span> <span class="op">=</span> <span class="ident">Gpapi</span>::<span class="ident">new</span>(<span class="ident">username</span>, <span class="ident">password</span>, <span class="ident">gsf_id</span>);
             <span class="ident">api</span>.<span class="ident">authenticate</span>()<span class="question-mark">?</span>;
-            <span class="comment">// dbg!(&amp;api.token);</span>
             <span class="ident">api</span>
         }
     };
@@ -116,14 +110,12 @@
         <span class="kw">let</span> <span class="ident">pkg</span> <span class="op">=</span> <span class="ident">matches</span>.<span class="ident">value_of</span>(<span class="string">&quot;PKG&quot;</span>).<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">details</span> <span class="op">=</span> <span class="ident">api</span>.<span class="ident">details</span>(<span class="kw-2">&amp;</span><span class="ident">pkg</span>)<span class="question-mark">?</span>.<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">as_str</span> <span class="op">=</span> <span class="ident">serde_json</span>::<span class="ident">to_string_pretty</span>(<span class="kw-2">&amp;</span><span class="ident">details</span>)<span class="question-mark">?</span>;
-        <span class="comment">// dbg!(details);</span>
         <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">as_str</span>);
     } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">matches</span>) <span class="op">=</span> <span class="ident">matches</span>.<span class="ident">subcommand_matches</span>(<span class="string">&quot;get-download-url&quot;</span>) {
         <span class="kw">let</span> <span class="ident">pkg</span> <span class="op">=</span> <span class="ident">matches</span>.<span class="ident">value_of</span>(<span class="string">&quot;PKG&quot;</span>).<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">vc</span>: <span class="ident">u64</span> <span class="op">=</span> <span class="ident">matches</span>.<span class="ident">value_of</span>(<span class="string">&quot;VC&quot;</span>).<span class="ident">unwrap</span>().<span class="ident">parse</span>().<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">download_url</span> <span class="op">=</span> <span class="ident">api</span>.<span class="ident">get_download_url</span>(<span class="kw-2">&amp;</span><span class="ident">pkg</span>, <span class="ident">vc</span>)<span class="question-mark">?</span>.<span class="ident">unwrap</span>();
         <span class="macro">println</span><span class="macro">!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">download_url</span>);
-       <span class="comment">// dbg!(download_url);</span>
     } <span class="kw">else</span> {
         <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="string">&quot;Subcommand required&quot;</span>.<span class="ident">into</span>())
     }
