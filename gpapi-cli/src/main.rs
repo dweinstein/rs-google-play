@@ -15,7 +15,6 @@ use std::error::Error;
 fn main() -> Result<(), Box<Error>> {
     let cli_yaml_def = load_yaml!("cli.yml");
     let matches = App::from_yaml(cli_yaml_def).get_matches();
-    // dbg!(&matches);
 
     let api = match get_login_from_env() {
         LoginInfo {
@@ -25,7 +24,6 @@ fn main() -> Result<(), Box<Error>> {
         } => {
             let mut api = Gpapi::new(username, password, gsf_id);
             api.authenticate()?;
-            // dbg!(&api.token);
             api
         }
     };
@@ -39,14 +37,12 @@ fn main() -> Result<(), Box<Error>> {
         let pkg = matches.value_of("PKG").unwrap();
         let details = api.details(&pkg)?.unwrap();
         let as_str = serde_json::to_string_pretty(&details)?;
-        // dbg!(details);
         println!("{}", as_str);
     } else if let Some(matches) = matches.subcommand_matches("get-download-url") {
         let pkg = matches.value_of("PKG").unwrap();
         let vc: u64 = matches.value_of("VC").unwrap().parse().unwrap();
         let download_url = api.get_download_url(&pkg, vc)?.unwrap();
         println!("{}", download_url);
-       // dbg!(download_url);
     } else {
         return Err("Subcommand required".into())
     }

@@ -12,7 +12,6 @@ extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-extern crate serde_json;
 
 use protos::googleplay::{
     BulkDetailsRequest, BulkDetailsResponse, BuyResponse, DeliveryResponse, DetailsResponse,
@@ -25,8 +24,9 @@ use std::error::Error;
 
 pub use protobuf::{Message, SingularPtrField};
 
-pub const STATUS_UNAVAIL: i32 = 2;
+pub const STATUS_PURCHASE_UNAVAIL: i32 = 2;
 pub const STATUS_PURCHASE_REQD: i32 = 3;
+pub const STATUS_PURCHASE_ERR: i32 = 5;
 
 #[derive(Debug)]
 pub struct Gpapi {
@@ -85,11 +85,8 @@ impl Gpapi {
     /// Play Store package detail request (provides more detail than bulk requests).
     pub fn details(&self, pkg_name: &str) -> Result<Option<DetailsResponse>, Box<Error>> {
         let mut req = HashMap::new();
-
         req.insert("doc", pkg_name);
-
         let resp = self.execute_request_v2("details", Some(req), None, None)?;
-
         if let Some(payload) = resp.payload.into_option() {
             Ok(payload.detailsResponse.into_option())
         } else {
@@ -105,16 +102,13 @@ impl Gpapi {
         req.docid = pkg_names.into_iter().cloned().map(String::from).collect();
         req.includeDetails = Some(true);
         req.includeChildDocs = Some(false);
-
         let bytes = req.write_to_bytes()?;
-
         let resp = self.execute_request_v2(
             "bulkDetails",
             None,
             Some(&bytes),
             Some("application/x-protobuf"),
         )?;
-
         if let Some(payload) = resp.payload.into_option() {
             Ok(payload.bulkDetailsResponse.into_option())
         } else {
@@ -131,7 +125,7 @@ impl Gpapi {
                     ..
                 } => Ok(app_delivery_data.clone().unwrap().downloadUrl.into_option()),
                 DeliveryResponse {
-                    status: Some(STATUS_UNAVAIL),
+                    status: Some(STATUS_PURCHASE_UNAVAIL),
                     ..
                 } => Err(format!("can't locate {}", pkg_name).into()),
                 DeliveryResponse {
@@ -149,7 +143,6 @@ impl Gpapi {
                     _ => unimplemented!(),
                 },
                 _ => {
-                    dbg!(app_delivery_resp);
                     unimplemented!()
                 }
             }
@@ -182,9 +175,6 @@ impl Gpapi {
         req.insert("ot", "1");
 
         let delivery_resp = self.execute_request_v2("delivery", Some(req), None, None)?;
-
-        // dbg!(&delivery_resp);
-
         if let Some(payload) = delivery_resp.payload.into_option() {
             Ok(payload.deliveryResponse.into_option())
         } else {
@@ -198,9 +188,6 @@ impl Gpapi {
         let body_bytes = body.into_bytes();
 
         let resp = self.execute_request_v2("purchase", None, Some(&body_bytes), None)?;
-
-        // dbg!(&resp);
-
         match resp {
             ResponseWrapper {
                 commands, payload, ..
@@ -223,7 +210,7 @@ impl Gpapi {
             self.token = token.to_string();
             Ok(())
         } else {
-            panic!("no GSF auth token");
+            Err("No GSF auth token".into())
         }
     }
 
@@ -304,8 +291,6 @@ impl Gpapi {
         } else {
             (*self.client).get(url).headers(headers).send()?
         };
-
-        // dbg!(&res);
 
         let mut buf = Vec::new();
         res.copy_to(&mut buf)?;
@@ -562,15 +547,11 @@ mod tests {
                 (Ok(username), Ok(password), Ok(gsf_id)) => {
                     let mut api = Gpapi::new(username, password, gsf_id);
                     api.authenticate().ok();
-                    dbg!(&api.token);
                     assert!(api.token != "");
 
                     let details = api.details("com.viber.voip").ok();
-                    dbg!(details);
-
                     let pkg_names = ["com.viber.voip", "air.WatchESPN"];
                     let bulk_details = api.bulk_details(&pkg_names).ok();
-                    dbg!(bulk_details);
                 }
                 _ => panic!("require login/password/gsf_id for test"),
             }
@@ -586,248 +567,3 @@ mod tests {
         }
     }
 }
-// /// Play Store bulk package detail request.
-// ///
-// /// # Arguments
-// /// `pkg_names`  - A list of up to 200 or so package names.
-// /// `token`      - A valid GSF token for the request.
-// /// `gsf_id` - A GSF device ID representing the device configuration profile.
-// pub fn bulk_details(
-//     pkg_names: &[&str],
-//     token: &str,
-//     gsf_id: &str,
-// ) -> Result<Option<BulkDetailsResponse>, Box<Error>> {
-//     let mut req = BulkDetailsRequest::new();
-//     req.docid = pkg_names.into_iter().cloned().map(String::from).collect();
-//     req.includeDetails = Some(true);
-//     req.includeChildDocs = Some(false);
-
-//     let bytes = req.write_to_bytes()?;
-
-//     let resp = execute_request_v2(
-//         "bulkDetails",
-//         None,
-//         Some(&bytes),
-//         Some("application/x-protobuf"),
-//         gsf_id,
-//         token,
-//     )?;
-
-//     if let Some(payload) = resp.payload.into_option() {
-//         Ok(payload.bulkDetailsResponse.into_option())
-//     } else {
-//         Ok(None)
-//     }
-// }
-
-// /// Play Store package detail request (provides more detail than bulk requests).
-// pub fn details(
-//     pkg_name: &str,
-//     token: &str,
-//     gsf_id: &str,
-// ) -> Result<Option<DetailsResponse>, Box<Error>> {
-//     let mut req = HashMap::new();
-
-//     req.insert("doc", pkg_name);
-
-//     let resp = execute_request_v2("details", Some(req), None, None, gsf_id, token)?;
-
-//     if let Some(payload) = resp.payload.into_option() {
-//         Ok(payload.detailsResponse.into_option())
-//     } else {
-//         Ok(None)
-//     }
-// }
-
-// pub fn app_delivery_data(
-//     pkg_name: &str,
-//     vc: u64,
-//     token: &str,
-//     gsf_id: &str,
-// ) -> Result<Option<DeliveryResponse>, Box<dyn Error>> {
-//     let vc = vc.to_string();
-
-//     let mut req = HashMap::new();
-
-//     req.insert("doc", pkg_name);
-//     req.insert("vc", &vc);
-//     req.insert("ot", "1");
-
-//     let delivery_resp = execute_request_v2("delivery", Some(req), None, None, gsf_id, token)?;
-
-//     // dbg!(&delivery_resp);
-
-//     if let Some(payload) = delivery_resp.payload.into_option() {
-//         Ok(payload.deliveryResponse.into_option())
-//     } else {
-//         Ok(None)
-//     }
-// }
-
-// pub fn purchase(
-//     pkg_name: &str,
-//     vc: u64,
-//     token: &str,
-//     gsf_id: &str,
-// ) -> Result<Option<BuyResponse>, Box<dyn Error>> {
-//     let vc = vc.to_string();
-//     let body = format!("ot=1&doc={}&vc={}", pkg_name, vc);
-//     let body_bytes = body.into_bytes();
-
-//     let resp = execute_request_v2("purchase", None, Some(&body_bytes), None, gsf_id, token)?;
-
-//     // dbg!(&resp);
-
-//     match resp {
-//         ResponseWrapper {
-//             commands, payload, ..
-//         } => match (commands.into_option(), payload.into_option()) {
-//             (_, Some(payload)) => Ok(payload.buyResponse.into_option()),
-//             (Some(commands), _) => Err(commands.displayErrorMessage.unwrap().into()),
-//             _ => unimplemented!(),
-//         }, // ResponseWrapper { commands: SingularPtrField<ServerCommands>::some(commands), .. } => Err(commands.displayErrorMessage)
-//     }
-//     // if let Some(payload) = resp.payload.into_option() {
-//     //     Ok(payload.buyResponse.into_option())
-//     // } else {
-//     //     Ok(None)
-//     // }
-// }
-
-// /// Lower level Play Store request, used by APIs but exposed for specialized
-// /// requests. Returns a `ResponseWrapper` which depending on the request
-// /// populates different fields/values.
-// pub fn execute_request_v2(
-//     endpoint: &str,
-//     query: Option<HashMap<&str, &str>>,
-//     msg: Option<&[u8]>,
-//     content_type: Option<&str>,
-//     gsf_id: &str,
-//     token: &str,
-// ) -> Result<ResponseWrapper, Box<Error>> {
-//     let client = reqwest::Client::new();
-
-//     let mut url = Url::parse(&format!(
-//         "{}/{}",
-//         "https://android.clients.google.com/fdfe", endpoint
-//     ))?;
-
-//     let config = BuildConfiguration {
-//         ..Default::default()
-//     };
-
-//     let mut headers = HeaderMap::new();
-//     headers.insert(
-//         reqwest::header::USER_AGENT,
-//         HeaderValue::from_str(&config.user_agent())?,
-//     );
-//     headers.insert("Accept-Language", HeaderValue::from_static("en_US"));
-//     headers.insert(
-//         "Authorization",
-//         HeaderValue::from_str(&format!("GoogleLogin auth={}", token))?,
-//     );
-//     headers.insert(
-//         "X-DFE-Enabled-Experiments",
-//         HeaderValue::from_static("cl:billing.select_add_instrument_by_default"),
-//     );
-//     headers.insert("X-DFE-Unsupported-Experiments", HeaderValue::from_static("nocache:billing.use_charging_poller,market_emails,buyer_currency,prod_baseline,checkin.set_asset_paid_app_field,shekel_test,content_ratings,buyer_currency_in_app,nocache:encrypted_apk,recent_changes"));
-//     headers.insert("X-DFE-Device-Id", HeaderValue::from_str(&gsf_id)?);
-//     headers.insert(
-//         "X-DFE-Client-Id",
-//         HeaderValue::from_static("am-android-google"),
-//     );
-//     headers.insert(
-//         "X-DFE-SmallestScreenWidthDp",
-//         HeaderValue::from_static("320"),
-//     );
-//     headers.insert("X-DFE-Filter-Level", HeaderValue::from_static("3"));
-//         (*self.client).post(DEFAULT_LOGIN_URL).body(form_body).send()?;
-//     headers.insert("X-DFE-No-Prefetch", HeaderValue::from_static("true"));
-
-//     if let Some(content_type) = content_type {
-//         headers.insert("Content-Type", HeaderValue::from_str(content_type)?);
-//     } else {
-//         headers.insert(
-//             "Content-Type",
-//             HeaderValue::from_static("application/x-www-form-urlencoded; charset=UTF-8"),
-//         );
-//     }
-
-//     if let Some(query) = query {
-//         let mut queries = url.query_pairs_mut();
-//         for (key, val) in query {
-//             queries.append_pair(key, val);
-//         }
-//     }
-
-//     let mut res = if let Some(msg) = msg {
-//         client
-//             .post(url)
-//             .headers(headers)
-//             .body(msg.to_owned())
-//             .send()?
-//     } else {
-//         client.get(url).headers(headers).send()?
-//     };
-
-//     // dbg!(&res);
-
-//     let mut buf = Vec::new();
-//     res.copy_to(&mut buf)?;
-//     let mut resp = ResponseWrapper::new();
-//     resp.merge_from_bytes(&buf)?;
-//     Ok(resp)
-// }
-
-// /// Handles logging into Google Play Store, retrieving a set of tokens from
-// /// the server that can be used for future requests.
-// /// The `gsf_id` is obtained by retrieving your
-// /// [GSF id](https://blog.onyxbits.de/what-exactly-is-a-gsf-id-where-do-i-get-it-from-and-why-should-i-care-2-12/).
-// /// You can also get your **GSF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
-// /// Note that you don't want the Android ID here, but the GSF id.
-// pub fn login(
-//     username: &str,
-//     password: &str,
-//     gsf_id: &str,
-// ) -> Result<HashMap<String, String>, Box<Error>> {
-//     use consts::defaults::DEFAULT_LOGIN_URL;
-
-//     let login_req = build_login_request(username, password, gsf_id);
-
-//     let mut easy = curl::easy::Easy::new();
-//     easy.url(DEFAULT_LOGIN_URL)?;
-//     easy.useragent(consts::defaults::DEFAULT_AUTH_USER_AGENT)?;
-//     easy.post(true)?;
-//     let form_body = login_req.form_post();
-//     easy.post_fields_copy(form_body.as_bytes())?;
-
-//     let mut buf = Vec::new();
-//     {
-//         let mut transfer = easy.transfer();
-//         transfer.write_function(|data| {
-//             buf.extend_from_slice(data);
-//             Ok(data.len())
-//         })?;
-//         transfer.perform()?;
-//     }
-
-//     let reply = parse_form_reply(&std::str::from_utf8(&buf).unwrap());
-//     Ok(reply)
-// }
-// /// A trait that provides a convenience method for using URL-encoded query paramaters in a URL with `curl::Easy`
-// pub trait QueryParams {
-//     fn url_query(&mut self, url: &str, query: HashMap<&str, &str>) -> Result<String, curl::Error>;
-// }
-
-// impl QueryParams for Easy {
-//     /// Convenience method to set the `url` with query parameters.
-//     fn url_query(&mut self, url: &str, query: HashMap<&str, &str>) -> Result<String, curl::Error> {
-//         let mut res = vec![];
-//         for (key, val) in query.into_iter() {
-//             res.push(format!("{}={}", key, self.url_encode(val.as_bytes())));
-//         }
-//         let url = format!("{}?{}", url, res.join("&"));
-//         self.url(&url)?;
-//         Ok(url)
-//     }
-// }
