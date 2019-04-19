@@ -1,4 +1,3 @@
-pub mod apk;
 pub mod consts;
 pub mod protos;
 
@@ -22,7 +21,7 @@ use reqwest::Url;
 use std::collections::HashMap;
 use std::error::Error;
 
-pub use protobuf::{Message, SingularPtrField};
+use protobuf::Message;
 
 pub const STATUS_PURCHASE_UNAVAIL: i32 = 2;
 pub const STATUS_PURCHASE_REQD: i32 = 3;
@@ -34,7 +33,7 @@ pub struct Gpapi {
     pub password: String,
     pub gsf_id: String,
     pub token: String,
-    pub client: Box<reqwest::Client>,
+    client: Box<reqwest::Client>,
 }
 
 impl Gpapi {
@@ -46,40 +45,6 @@ impl Gpapi {
             token: String::from(""),
             client: Box::new(reqwest::Client::new()),
         }
-    }
-
-    /// Handles logging into Google Play Store, retrieving a set of tokens from
-    /// the server that can be used for future requests.
-    /// The `gsf_id` is obtained by retrieving your
-    /// [GSF id](https://blog.onyxbits.de/what-exactly-is-a-gsf-id-where-do-i-get-it-from-and-why-should-i-care-2-12/).
-    /// You can also get your **GSF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
-    /// Note that you don't want the Android ID here, but the GSF id.
-    fn login(&self) -> Result<HashMap<String, String>, Box<Error>> {
-        use consts::defaults::DEFAULT_LOGIN_URL;
-
-        let login_req = ::build_login_request(&self.username, &self.password, &self.gsf_id);
-
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            reqwest::header::USER_AGENT,
-            HeaderValue::from_str(&consts::defaults::DEFAULT_AUTH_USER_AGENT)?,
-        );
-        headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            HeaderValue::from_static("application/x-www-form-urlencoded; charset=UTF-8"),
-        );
-
-        let form_body = login_req.form_post();
-        let mut res = (*self.client)
-            .post(DEFAULT_LOGIN_URL)
-            .headers(headers)
-            .body(form_body)
-            .send()?;
-
-        let mut buf = Vec::new();
-        res.copy_to(&mut buf)?;
-        let reply = parse_form_reply(&std::str::from_utf8(&buf).unwrap());
-        Ok(reply)
     }
 
     /// Play Store package detail request (provides more detail than bulk requests).
@@ -142,9 +107,7 @@ impl Gpapi {
                     Err(err) => Err(format!("error purchasing {:?}", err).into()),
                     _ => unimplemented!(),
                 },
-                _ => {
-                    unimplemented!()
-                }
+                _ => unimplemented!(),
             }
         } else {
             if let Ok(Some(purchase_resp)) = self.purchase(pkg_name, vc) {
@@ -212,6 +175,40 @@ impl Gpapi {
         } else {
             Err("No GSF auth token".into())
         }
+    }
+
+    /// Handles logging into Google Play Store, retrieving a set of tokens from
+    /// the server that can be used for future requests.
+    /// The `gsf_id` is obtained by retrieving your
+    /// [GSF id](https://blog.onyxbits.de/what-exactly-is-a-gsf-id-where-do-i-get-it-from-and-why-should-i-care-2-12/).
+    /// You can also get your **GSF ID**  using this following [device id app](https://play.google.com/store/apps/details?id=com.evozi.deviceid&hl=en)
+    /// Note that you don't want the Android ID here, but the GSF id.
+    pub fn login(&self) -> Result<HashMap<String, String>, Box<Error>> {
+        use consts::defaults::DEFAULT_LOGIN_URL;
+
+        let login_req = ::build_login_request(&self.username, &self.password, &self.gsf_id);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            reqwest::header::USER_AGENT,
+            HeaderValue::from_str(&consts::defaults::DEFAULT_AUTH_USER_AGENT)?,
+        );
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/x-www-form-urlencoded; charset=UTF-8"),
+        );
+
+        let form_body = login_req.form_post();
+        let mut res = (*self.client)
+            .post(DEFAULT_LOGIN_URL)
+            .headers(headers)
+            .body(form_body)
+            .send()?;
+
+        let mut buf = Vec::new();
+        res.copy_to(&mut buf)?;
+        let reply = parse_form_reply(&std::str::from_utf8(&buf).unwrap());
+        Ok(reply)
     }
 
     /// Lower level Play Store request, used by APIs but exposed for specialized

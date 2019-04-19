@@ -5,7 +5,7 @@ authors = ["David Weinstein <dweinst@insitusec.com>"]
 build = "build.rs"
 
 [dependencies]
-protobuf = { git = "https://github.com/stepancheg/rust-protobuf.git", features = ["with-bytes", "with-serde"] }
+protobuf = { git = "https://github.com/stepancheg/rust-protobuf.git", rev = "3ba9cb912183fa3becd7d78364a033217560533e", features = ["with-bytes", "with-serde"] }
 reqwest = "0.9.11"
 serde = "1"
 serde_derive = "1"
@@ -16,4 +16,5 @@ hex = "0.3.2"
 lazy_static = "1.2.0"
 
 [build-dependencies]
-protoc-rust = { git = "https://github.com/stepancheg/rust-protobuf.git" }
+protoc-rust = { git = "https://github.com/stepancheg/rust-protobuf.git", rev = "3ba9cb912183fa3becd7d78364a033217560533e" }
+

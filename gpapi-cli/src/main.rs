@@ -16,6 +16,18 @@ fn main() -> Result<(), Box<Error>> {
     let cli_yaml_def = load_yaml!("cli.yml");
     let matches = App::from_yaml(cli_yaml_def).get_matches();
 
+    if let Some(matches) = matches.subcommand_matches("login") {
+        let username = matches.value_of("USERNAME").unwrap();
+        let password = matches.value_of("PASSWORD").unwrap();
+        let gsf_id = matches.value_of("PASSWORD").unwrap();
+
+        let mut api = Gpapi::new(username, password, gsf_id);
+        let auth = api.login()?;
+        let as_str = serde_json::to_string_pretty(&auth)?;
+        println!("{}", as_str);
+        return Ok(())
+    }
+
     let api = match get_login_from_env() {
         LoginInfo {
             username,
@@ -30,7 +42,7 @@ fn main() -> Result<(), Box<Error>> {
 
     if let Some(matches) = matches.subcommand_matches("bulk-details") {
         let pkgs = matches.values_of("PKGS").unwrap().collect::<Vec<&str>>();
-        let bulk_details = api.bulk_details(&pkgs).ok();
+        let bulk_details = api.bulk_details(&pkgs)?;
         let as_str = serde_json::to_string_pretty(&bulk_details)?;
         println!("{}", as_str);
     } else if let Some(matches) = matches.subcommand_matches("details") {
@@ -44,8 +56,9 @@ fn main() -> Result<(), Box<Error>> {
         let download_url = api.get_download_url(&pkg, vc)?.unwrap();
         println!("{}", download_url);
     } else {
-        return Err("Subcommand required".into())
+        return Err("Subcommand required".into());
     }
+
     Ok(())
 }
 

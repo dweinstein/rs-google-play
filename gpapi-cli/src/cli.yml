@@ -16,6 +16,25 @@ args:
         multiple: true
         help: Sets the level of verbosity
 subcommands:
+    - login:
+        about: Get an auth token for a Play Store user.
+        version: "1.0"
+        args:
+            - debug:
+                short: d
+                help: print debug information
+            - USERNAME:
+                help: Google PlayStore username.
+                required: true
+                index: 1
+            - PASSWORD:
+                help: Google PlayStore password.
+                required: true
+                index: 2
+            - GSF_ID:
+                help: Google play services framework ID from a successful device check-in.
+                required: true
+                index: 3
     - details:
         about: Get details for a package.
         version: "1.0"
