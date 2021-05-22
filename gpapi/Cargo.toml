@@ -3,6 +3,7 @@ name = "gpapi"
 version = "0.1.0"
 authors = ["David Weinstein <dweinst@insitusec.com>"]
 build = "build.rs"
+license = "MIT"
 
 [dependencies]
 protobuf = { git = "https://github.com/stepancheg/rust-protobuf.git", rev = "3ba9cb912183fa3becd7d78364a033217560533e", features = ["with-bytes", "with-serde"] }
