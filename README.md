@@ -94,5 +94,5 @@ TODO
   - [x] details request
   - [x] bulkDetails
   - [ ] apk download
-- [ ] set code license
+- [x] set code license
 
