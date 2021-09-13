@@ -1,7 +1,9 @@
 rs-gpapi
 ==========
 
-Rust conversion (in-progress) from https://github.com/dweinstein/node-google-play.
+This project is no longer active.  I recommend using the [EFF fork](https://github.com/EFForg/rs-google-play).
+
+This is a rusty version of my other node.js project: https://github.com/dweinstein/node-google-play.
 
 Documentation can be found [here](https://dweinstein.github.io/rs-google-play/gpapi/), but no promise it's the latest.
 
